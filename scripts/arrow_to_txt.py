@@ -9,6 +9,7 @@ in the environment where you run it, but you can override paths via CLI.
 
 import argparse
 import os
+import glob
 
 from datasets import load_dataset
 
@@ -89,13 +90,18 @@ def main():
         print(f"Processing {config}...")
 
         # 完全离线：从本地 Arrow 文件读取，不访问 HuggingFace Hub。
-        # 目录结构示例：
+        # 目录结构示例（train 可能有分片）：
         #   {cache-dir}/cs-en/wmt14-train.arrow
+        #   或 {cache-dir}/cs-en/wmt14-train-00000-of-00003.arrow 等
         #   {cache-dir}/cs-en/wmt14-validation.arrow
         #   {cache-dir}/cs-en/wmt14-test.arrow
         pair_cache_dir = os.path.join(args.cache_dir, config)
+        train_pattern = os.path.join(pair_cache_dir, "wmt14-train*.arrow")
+        train_files = sorted(glob.glob(train_pattern))
+        if not train_files:
+            raise FileNotFoundError(f"No train Arrow files matching {train_pattern}")
         data_files = {
-            "train": os.path.join(pair_cache_dir, "wmt14-train.arrow"),
+            "train": train_files,
             "validation": os.path.join(pair_cache_dir, "wmt14-validation.arrow"),
             "test": os.path.join(pair_cache_dir, "wmt14-test.arrow"),
         }
