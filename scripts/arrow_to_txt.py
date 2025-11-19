@@ -87,7 +87,17 @@ def main():
     for src, tgt in LANG_PAIRS:
         config = f"{src}-{tgt}"
         print(f"Processing {config}...")
-        ds = load_dataset("wmt/wmt14", config, cache_dir=args.cache_dir)
+
+        # In this project we work fully离线：Arrow 文件已经在本地，
+        # 所以直接用内置的 `arrow` 数据集读取本地 .arrow 文件，
+        # 不再访问 HuggingFace Hub。
+        pair_cache_dir = os.path.join(args.cache_dir, config)
+        data_files = {
+            "train": os.path.join(pair_cache_dir, "wmt14-train*.arrow"),
+            "validation": os.path.join(pair_cache_dir, "wmt14-validation.arrow"),
+            "test": os.path.join(pair_cache_dir, "wmt14-test.arrow"),
+        }
+        ds = load_dataset("arrow", data_files=data_files)
 
         pair_dir = os.path.join(args.save_dir, config)
         os.makedirs(pair_dir, exist_ok=True)
