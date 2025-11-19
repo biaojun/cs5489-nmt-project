@@ -1,0 +1,77 @@
+# ===== Python artifacts =====
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.eggs/
+.build/
+.dist/
+.env/
+venv/
+.venv/
+
+# ===== Jupyter =====
+.ipynb_checkpoints/
+
+# ===== OS / Editor =====
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# ===== Logs / Temp / Outputs =====
+*.log
+*.out
+*.tmp
+*.cache/
+logs/
+
+# ===== Data (raw & processed) =====
+# 忽略大型数据集与中间处理结果，必要时改为更细粒度规则。
+/data/
+processed_wmt14/
+**/processed_wmt14/
+*.tar
+*.tar.gz
+*.zip
+*.gz
+*.bz2
+*.xz
+
+# 如果需要保留目录结构，可在空目录放置 .gitkeep 文件
+
+# ===== Model checkpoints / artifacts =====
+checkpoints/
+*.ckpt
+*.pt
+*.bin
+*.npz
+*.onnx
+
+# ===== SentencePiece artifacts =====
+*.model
+*.vocab
+spm_*/*.model
+spm_*/*.vocab
+
+# ===== Moses / SMT training outputs =====
+# 训练日志与调优输出通常体积较大，可不纳入版本控制
+smt/*/mert-work/
+smt/*/model/
+*.arpa
+*.kenlm
+
+# ===== Generated evaluation / result files =====
+analysis/results/
+results/
+
+# ===== Temporary experiment folders =====
+exp_*/
+run_*/
+
+# ===== Misc =====
+*.pickle
+*.pkl
+*.npy
+*.npz
