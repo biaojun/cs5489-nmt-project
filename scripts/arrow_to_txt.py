@@ -88,12 +88,14 @@ def main():
         config = f"{src}-{tgt}"
         print(f"Processing {config}...")
 
-        # In this project we work fully离线：Arrow 文件已经在本地，
-        # 所以直接用内置的 `arrow` 数据集读取本地 .arrow 文件，
-        # 不再访问 HuggingFace Hub。
+        # 完全离线：从本地 Arrow 文件读取，不访问 HuggingFace Hub。
+        # 目录结构示例：
+        #   {cache-dir}/cs-en/wmt14-train.arrow
+        #   {cache-dir}/cs-en/wmt14-validation.arrow
+        #   {cache-dir}/cs-en/wmt14-test.arrow
         pair_cache_dir = os.path.join(args.cache_dir, config)
         data_files = {
-            "train": os.path.join(pair_cache_dir, "wmt14-train*.arrow"),
+            "train": os.path.join(pair_cache_dir, "wmt14-train.arrow"),
             "validation": os.path.join(pair_cache_dir, "wmt14-validation.arrow"),
             "test": os.path.join(pair_cache_dir, "wmt14-test.arrow"),
         }
