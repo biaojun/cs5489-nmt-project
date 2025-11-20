@@ -39,12 +39,14 @@ class Encoder(nn.Module):
 
 
 class LuongAttention(nn.Module):
-    def __init__(self, hidden_size: int):
+    def __init__(self, enc_dim: int, dec_dim: int):
         super().__init__()
-        self.W = nn.Linear(hidden_size, hidden_size, bias=False)
+        # project decoder state (dec_dim) into encoder space (enc_dim)
+        self.W = nn.Linear(dec_dim, enc_dim, bias=False)
 
     def forward(self, query, values, mask):
-        # query: [B, H], values: [B, T, H]
+        # query: [B, dec_dim], values: [B, T, enc_dim]
+        # W(query): [B, enc_dim]
         score = torch.bmm(values, self.W(query).unsqueeze(-1)).squeeze(-1)
         score = score.masked_fill(mask == 0, -1e9)
         attn_weights = torch.softmax(score, dim=-1)
@@ -62,7 +64,8 @@ class Decoder(nn.Module):
             num_layers=1,
             batch_first=True,
         )
-        self.attn = LuongAttention(config.hidden_size)
+        # encoder is bidirectional, so enc_dim = hidden_size * 2
+        self.attn = LuongAttention(enc_dim=config.hidden_size * 2, dec_dim=config.hidden_size)
         self.dropout = nn.Dropout(config.dropout)
         self.fc_out = nn.Linear(config.hidden_size * 2, config.vocab_size)
 
