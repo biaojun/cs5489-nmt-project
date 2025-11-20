@@ -33,8 +33,9 @@ class ParallelDataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         src_tokens = self.src_lines[idx].split()
         tgt_tokens = self.tgt_lines[idx].split()
-        src_ids = [BOS_ID] + self.sp.piece_ids(src_tokens) + [EOS_ID]
-        tgt_ids = [BOS_ID] + self.sp.piece_ids(tgt_tokens) + [EOS_ID]
+        # .src/.tgt 已经是 SentencePiece 子词序列（字符串），这里只需要映射到 id。
+        src_ids = [BOS_ID] + [self.sp.piece_to_id(t) for t in src_tokens] + [EOS_ID]
+        tgt_ids = [BOS_ID] + [self.sp.piece_to_id(t) for t in tgt_tokens] + [EOS_ID]
         return torch.tensor(src_ids, dtype=torch.long), torch.tensor(
             tgt_ids, dtype=torch.long
         )
@@ -95,4 +96,3 @@ def make_dataloader(
         num_workers=num_workers,
         collate_fn=collate_batch,
     )
-
