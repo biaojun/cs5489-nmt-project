@@ -8,11 +8,11 @@ PAIR=${1:-de-en}
 SRC=${PAIR%-*}
 TGT=${PAIR#*-}
 
-DATA_ROOT=/root/autodl-tmp/processed_wmt14
+DATA_ROOT=${DATA_ROOT:-/root/autodl-tmp/cs5489-nmt-project/processed_wmt14}
 PAIR_DIR=$DATA_ROOT/$PAIR
 
-MOSES_DIR=/path/to/mosesdecoder
-KENLM_DIR=/path/to/kenlm
+MOSES_DIR=${MOSES_DIR:-/root/autodl-tmp/mt_tools/mosesdecoder}
+KENLM_DIR=${KENLM_DIR:-/root/autodl-tmp/mt_tools/kenlm}
 EXTERNAL_BIN_DIR=$MOSES_DIR/tools
 
 SCRIPTS=$MOSES_DIR/scripts
@@ -48,4 +48,3 @@ echo "Decoding test set..."
 "$MOSES_DIR"/bin/moses -f "$WORK_DIR/mert-work/moses.ini" < "$PAIR_DIR/test.$SRC" > "$WORK_DIR/test.output"
 
 echo "Done. SMT output at $WORK_DIR/test.output"
-
