@@ -75,6 +75,10 @@ class Decoder(nn.Module):
         logits = self.fc_out(concat)
         return logits, hidden
 
+    def forward(self, input_tokens, hidden, enc_outputs, src_mask):
+        # Thin wrapper so that calling `self.decoder(...)` works with nn.Module API.
+        return self.forward_step(input_tokens, hidden, enc_outputs, src_mask)
+
 
 class Seq2SeqModel(nn.Module):
     def __init__(self, config: Seq2SeqConfig):
@@ -136,4 +140,3 @@ class Seq2SeqModel(nn.Module):
             outputs = torch.cat([outputs, next_tokens.unsqueeze(1)], dim=1)
             input_tokens = next_tokens
         return outputs
-
