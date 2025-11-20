@@ -58,16 +58,17 @@ class Decoder(nn.Module):
     def __init__(self, config: Seq2SeqConfig):
         super().__init__()
         self.embedding = nn.Embedding(config.vocab_size, config.emb_dim, padding_idx=PAD_ID)
+        self.enc_dim = config.hidden_size * 2  # encoder is bidirectional
         self.lstm = nn.LSTM(
             input_size=config.emb_dim,
             hidden_size=config.hidden_size,
             num_layers=1,
             batch_first=True,
         )
-        # encoder is bidirectional, so enc_dim = hidden_size * 2
-        self.attn = LuongAttention(enc_dim=config.hidden_size * 2, dec_dim=config.hidden_size)
+        self.attn = LuongAttention(enc_dim=self.enc_dim, dec_dim=config.hidden_size)
         self.dropout = nn.Dropout(config.dropout)
-        self.fc_out = nn.Linear(config.hidden_size * 2, config.vocab_size)
+        fusion_dim = config.hidden_size + self.enc_dim
+        self.fc_out = nn.Linear(fusion_dim, config.vocab_size)
 
     def forward_step(self, input_tokens, hidden, enc_outputs, src_mask):
         emb = self.dropout(self.embedding(input_tokens.unsqueeze(1)))
