@@ -160,7 +160,9 @@ def train(
     save_dir: str,
     device: str,
 ):
-    src, tgt = lang_pair.split("-")
+    # For bilingual training lang_pair looks like "de-en".
+    # For multilingual training we expect a folder named exactly `lang_pair`
+    # (e.g. "multilingual") that contains {split}.src/.tgt.
     pair_dir = os.path.join(data_dir, lang_pair)
     train_src = os.path.join(pair_dir, "train.src")
     train_tgt = os.path.join(pair_dir, "train.tgt")
@@ -231,7 +233,12 @@ def parse_args():
         type=str,
         default="/root/autodl-tmp/processed_wmt14",
     )
-    parser.add_argument("--lang-pair", type=str, required=True, help="e.g. de-en")
+    parser.add_argument(
+        "--lang-pair",
+        type=str,
+        required=True,
+        help="language pair or dataset name (e.g. de-en or multilingual)",
+    )
     parser.add_argument(
         "--spm-model",
         type=str,
@@ -264,4 +271,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

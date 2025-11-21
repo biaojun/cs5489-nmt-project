@@ -42,7 +42,6 @@ def evaluate_model(
     out_path: str,
 ):
     model, spm_model, model_type = load_model(ckpt_path, device)
-    src, tgt = lang_pair.split("-")
     pair_dir = os.path.join(data_dir, lang_pair)
     src_path = os.path.join(pair_dir, f"{split}.src")
     tgt_path = os.path.join(pair_dir, f"{split}.tgt")
@@ -126,4 +125,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
