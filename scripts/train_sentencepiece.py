@@ -11,7 +11,6 @@ import tempfile
 
 import sentencepiece as spm
 
-
 LANG_PAIRS = [
     ("cs", "en"),
     ("de", "en"),
@@ -19,6 +18,8 @@ LANG_PAIRS = [
     ("hi", "en"),
     ("ru", "en"),
 ]
+
+LANG_TAGS = [f"<{src}>" for src, _ in LANG_PAIRS]
 
 
 def main():
@@ -45,6 +46,8 @@ def main():
 
     with tempfile.NamedTemporaryFile(mode="w+", encoding="utf-8", delete=False) as tmp:
         tmp_path = tmp.name
+        for tag in LANG_TAGS:
+            tmp.write(tag + "\n")
         for src, tgt in LANG_PAIRS:
             pair_dir = os.path.join(args.data_dir, f"{src}-{tgt}")
             src_path = os.path.join(pair_dir, f"train.clean.{src}")
@@ -68,6 +71,7 @@ def main():
         bos_id=1,
         eos_id=2,
         unk_id=3,
+        user_defined_symbols=",".join(LANG_TAGS),
         input_sentence_size=10000000,
         shuffle_input_sentence=True,
     )
@@ -77,4 +81,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

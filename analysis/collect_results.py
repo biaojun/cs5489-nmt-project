@@ -1,56 +1,44 @@
 """
-Aggregate BLEU / METEOR scores from JSON files into a markdown table.
+Aggregate BLEU / METEOR scores from multilingual JSON results.
 
-Expected input JSON structure:
+Expected JSON:
 {
-  "model": "seq2seq" | "transformer" | "smt",
-  "lang_pair": "de-en",
+  "model": "seq2seq" | "transformer",
+  "lang_pair": "multilingual",
   "split": "test",
-  "bleu": 27.3,
-  "meteor": 0.32
+  "bleu": ...,
+  "meteor": ...
 }
 """
 
 import argparse
 import glob
 import json
-from collections import defaultdict
-
-
-LANG_PAIRS = ["cs-en", "de-en", "fr-en", "hi-en", "ru-en"]
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pattern", type=str, required=True, help="glob pattern for metrics JSON")
+    parser.add_argument(
+        "--pattern",
+        type=str,
+        required=True,
+        help="glob pattern for multilingual metrics JSON files",
+    )
     args = parser.parse_args()
 
-    data = defaultdict(dict)
+    rows = []
     for path in glob.glob(args.pattern):
         with open(path, "r", encoding="utf-8") as f:
-            m = json.load(f)
-        model = m["model"]
-        lp = m["lang_pair"]
-        data[model][lp] = m["bleu"]
+            metric = json.load(f)
+        rows.append((metric["model"], metric.get("bleu", 0.0), metric.get("meteor", 0.0)))
 
-    models = ["smt", "seq2seq", "transformer"]
-    header = "| Model            | cs→en | de→en | fr→en | hi→en | ru→en | Avg |"
-    sep = "| ---------------- | ----- | ----- | ----- | ----- | ----- | --- |"
+    header = "| Model        | BLEU | METEOR |"
+    sep = "| ------------ | ---- | ------ |"
     print(header)
     print(sep)
-    for model in models:
-        row = [model.upper() if model == "smt" else model.capitalize()]
-        scores = []
-        for lp in LANG_PAIRS:
-            s = data.get(model, {}).get(lp, None)
-            if s is None:
-                row.append(" - ")
-            else:
-                row.append(f"{s:.2f}")
-                scores.append(s)
-        avg = sum(scores) / len(scores) if scores else 0.0
-        row.append(f"{avg:.2f}")
-        print("| " + " | ".join(row) + " |")
+    for model, bleu, meteor in sorted(rows):
+        name = model.capitalize()
+        print(f"| {name:<12} | {bleu:>4.2f} | {meteor:>6.3f} |")
 
 
 if __name__ == "__main__":
