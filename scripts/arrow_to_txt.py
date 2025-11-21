@@ -1,15 +1,15 @@
+#!/usr/bin/env python3
 """
 Convert WMT14 Arrow datasets (HuggingFace `wmt/wmt14`) to plain text
-parallel corpora for traditional MT.
+parallel corpora for MT training.
 
-This follows the reference code snippet in the assignment prompt.
-It assumes that Arrow files are under `/root/autodl-tmp/data/wmt___wmt14/`
-in the environment where you run it, but you can override paths via CLI.
+This script reads local Arrow shards (no HF download) and writes
+train/valid/test files for cs/de/fr/hi/ru → en.
 """
 
 import argparse
-import os
 import glob
+import os
 
 from datasets import load_dataset
 
@@ -24,16 +24,11 @@ LANG_PAIRS = [
 
 
 def write_split(ds_split, src_lang, tgt_lang, out_src, out_tgt, max_lines=None):
-    """
-    Write one split to plain-text files and return number of sentence pairs.
-
-    If max_lines is not None, at most that many valid sentence pairs are written.
-    """
     os.makedirs(os.path.dirname(out_src), exist_ok=True)
     n_written = 0
-    with open(out_src, "w", encoding="utf-8") as fs, open(
+    with open(out_src, "w", encoding="utf-8") as fsrc, open(
         out_tgt, "w", encoding="utf-8"
-    ) as ft:
+    ) as ftgt:
         for item in ds_split:
             if max_lines is not None and n_written >= max_lines:
                 break
@@ -41,8 +36,8 @@ def write_split(ds_split, src_lang, tgt_lang, out_src, out_tgt, max_lines=None):
             src = (trans.get(src_lang) or "").strip()
             tgt = (trans.get(tgt_lang) or "").strip()
             if src and tgt:
-                fs.write(src + "\n")
-                ft.write(tgt + "\n")
+                fsrc.write(src + "\n")
+                ftgt.write(tgt + "\n")
                 n_written += 1
     print(
         f"  Wrote {n_written} sentence pairs to "
@@ -56,18 +51,17 @@ def main():
     parser.add_argument(
         "--cache-dir",
         type=str,
-        default="/root/autodl-tmp/data",
-        help="datasets cache directory (where wmt___wmt14 lives)",
+        default="/root/autodl-tmp/data/wmt___wmt14",
+        help="directory containing {lang-pair}/wmt14-*.arrow files",
     )
     parser.add_argument(
         "--save-dir",
         type=str,
         default="/root/autodl-tmp/processed_wmt14",
-        help="where to save plain text files",
+        help="output directory for plain text files",
     )
     parser.add_argument(
         "--mode",
-        type=str,
         choices=["full", "subset"],
         default="full",
         help="use all training data or only a subset",
@@ -76,10 +70,7 @@ def main():
         "--max-train-lines",
         type=int,
         default=100000,
-        help=(
-            "when mode=subset, maximum number of training sentence pairs per language "
-            "pair (set to 0 to disable limit)"
-        ),
+        help="when mode=subset, cap the number of training sentence pairs per language",
     )
     args = parser.parse_args()
 
@@ -88,27 +79,20 @@ def main():
     for src, tgt in LANG_PAIRS:
         config = f"{src}-{tgt}"
         print(f"Processing {config}...")
-
-        # 完全离线：从本地 Arrow 文件读取，不访问 HuggingFace Hub。
-        # 目录结构示例（train 可能有分片）：
-        #   {cache-dir}/cs-en/wmt14-train.arrow
-        #   或 {cache-dir}/cs-en/wmt14-train-00000-of-00003.arrow 等
-        #   {cache-dir}/cs-en/wmt14-validation.arrow
-        #   {cache-dir}/cs-en/wmt14-test.arrow
-        pair_cache_dir = os.path.join(args.cache_dir, config)
-        train_pattern = os.path.join(pair_cache_dir, "wmt14-train*.arrow")
+        pair_dir = os.path.join(args.cache_dir, config)
+        train_pattern = os.path.join(pair_dir, "wmt14-train*.arrow")
         train_files = sorted(glob.glob(train_pattern))
         if not train_files:
             raise FileNotFoundError(f"No train Arrow files matching {train_pattern}")
         data_files = {
             "train": train_files,
-            "validation": os.path.join(pair_cache_dir, "wmt14-validation.arrow"),
-            "test": os.path.join(pair_cache_dir, "wmt14-test.arrow"),
+            "validation": os.path.join(pair_dir, "wmt14-validation.arrow"),
+            "test": os.path.join(pair_dir, "wmt14-test.arrow"),
         }
         ds = load_dataset("arrow", data_files=data_files)
 
-        pair_dir = os.path.join(args.save_dir, config)
-        os.makedirs(pair_dir, exist_ok=True)
+        out_dir = os.path.join(args.save_dir, config)
+        os.makedirs(out_dir, exist_ok=True)
 
         max_train = None
         if args.mode == "subset" and args.max_train_lines > 0:
@@ -118,29 +102,29 @@ def main():
             ds["train"],
             src,
             tgt,
-            os.path.join(pair_dir, f"train.{src}"),
-            os.path.join(pair_dir, f"train.{tgt}"),
+            os.path.join(out_dir, f"train.{src}"),
+            os.path.join(out_dir, f"train.{tgt}"),
             max_lines=max_train,
         )
         n_valid = write_split(
             ds["validation"],
             src,
             tgt,
-            os.path.join(pair_dir, f"valid.{src}"),
-            os.path.join(pair_dir, f"valid.{tgt}"),
+            os.path.join(out_dir, f"valid.{src}"),
+            os.path.join(out_dir, f"valid.{tgt}"),
         )
         n_test = write_split(
             ds["test"],
             src,
             tgt,
-            os.path.join(pair_dir, f"test.{src}"),
-            os.path.join(pair_dir, f"test.{tgt}"),
+            os.path.join(out_dir, f"test.{src}"),
+            os.path.join(out_dir, f"test.{tgt}"),
         )
         print(
-            f"  Summary for {config}: "
-            f"train={n_train}, valid={n_valid}, test={n_test}"
+            f"  Summary for {config}: train={n_train}, valid={n_valid}, test={n_test}"
         )
 
 
 if __name__ == "__main__":
     main()
+
