@@ -10,20 +10,20 @@ from torch.utils.data import Dataset, DataLoader
 PAD_ID = 0
 BOS_ID = 1
 EOS_ID = 2
-UNK_ID = 3
 
 
 class ParallelDataset(Dataset):
     def __init__(self, src_path: str, tgt_path: str, sp_model: str):
         self.src_lines = self._read_file(src_path)
         self.tgt_lines = self._read_file(tgt_path)
-        assert len(self.src_lines) == len(
-            self.tgt_lines
-        ), "Source and target must have same number of lines"
+        if len(self.src_lines) != len(self.tgt_lines):
+            raise ValueError("Source and target have different number of lines")
         self.sp = spm.SentencePieceProcessor(model_file=sp_model)
 
     @staticmethod
     def _read_file(path: str) -> List[str]:
+        if not os.path.exists(path):
+            raise FileNotFoundError(path)
         with open(path, "r", encoding="utf-8") as f:
             return [line.rstrip("\n") for line in f if line.strip()]
 
@@ -33,7 +33,6 @@ class ParallelDataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         src_tokens = self.src_lines[idx].split()
         tgt_tokens = self.tgt_lines[idx].split()
-        # .src/.tgt 已经是 SentencePiece 子词序列（字符串），这里只需要映射到 id。
         src_ids = [BOS_ID] + [self.sp.piece_to_id(t) for t in src_tokens] + [EOS_ID]
         tgt_ids = [BOS_ID] + [self.sp.piece_to_id(t) for t in tgt_tokens] + [EOS_ID]
         return torch.tensor(src_ids, dtype=torch.long), torch.tensor(
@@ -47,7 +46,6 @@ class Batch:
     src_lens: torch.Tensor
     tgt_input: torch.Tensor
     tgt_output: torch.Tensor
-    tgt_lens: torch.Tensor
 
 
 def collate_batch(samples: List[Tuple[torch.Tensor, torch.Tensor]]) -> Batch:
@@ -69,14 +67,12 @@ def collate_batch(samples: List[Tuple[torch.Tensor, torch.Tensor]]) -> Batch:
 
     tgt_input = tgt_batch[:, :-1]
     tgt_output = tgt_batch[:, 1:]
-    tgt_lens = tgt_lens - 1
 
     return Batch(
         src=src_batch,
         src_lens=src_lens,
         tgt_input=tgt_input,
         tgt_output=tgt_output,
-        tgt_lens=tgt_lens,
     )
 
 

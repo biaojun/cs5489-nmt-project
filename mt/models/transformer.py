@@ -29,7 +29,7 @@ class PositionalEncoding(nn.Module):
         )
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0)  # [1, T, D]
+        pe = pe.unsqueeze(0)
         self.register_buffer("pe", pe)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -61,9 +61,8 @@ class TransformerModel(nn.Module):
         return mask
 
     def forward(self, batch):
-        src, src_lens = batch.src, batch.src_lens
+        src = batch.src
         tgt_input = batch.tgt_input
-
         src_key_padding_mask = src.eq(PAD_ID)
         tgt_key_padding_mask = tgt_input.eq(PAD_ID)
         tgt_mask = self._generate_square_subsequent_mask(tgt_input.size(1), src.device)
@@ -107,4 +106,3 @@ class TransformerModel(nn.Module):
             next_word = prob.argmax(dim=-1)
             ys = torch.cat([ys, next_word.unsqueeze(1)], dim=1)
         return ys
-

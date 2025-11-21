@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import torch
 import torch.nn as nn
 
-from mt.data import PAD_ID
+from mt.data import PAD_ID, BOS_ID
 
 
 @dataclass
@@ -41,12 +41,9 @@ class Encoder(nn.Module):
 class LuongAttention(nn.Module):
     def __init__(self, enc_dim: int, dec_dim: int):
         super().__init__()
-        # project decoder state (dec_dim) into encoder space (enc_dim)
         self.W = nn.Linear(dec_dim, enc_dim, bias=False)
 
     def forward(self, query, values, mask):
-        # query: [B, dec_dim], values: [B, T, enc_dim]
-        # W(query): [B, enc_dim]
         score = torch.bmm(values, self.W(query).unsqueeze(-1)).squeeze(-1)
         score = score.masked_fill(mask == 0, -1e9)
         attn_weights = torch.softmax(score, dim=-1)
@@ -58,14 +55,14 @@ class Decoder(nn.Module):
     def __init__(self, config: Seq2SeqConfig):
         super().__init__()
         self.embedding = nn.Embedding(config.vocab_size, config.emb_dim, padding_idx=PAD_ID)
-        self.enc_dim = config.hidden_size * 2  # encoder is bidirectional
+        self.enc_dim = config.hidden_size * 2
         self.lstm = nn.LSTM(
             input_size=config.emb_dim,
             hidden_size=config.hidden_size,
             num_layers=1,
             batch_first=True,
         )
-        self.attn = LuongAttention(enc_dim=self.enc_dim, dec_dim=config.hidden_size)
+        self.attn = LuongAttention(self.enc_dim, config.hidden_size)
         self.dropout = nn.Dropout(config.dropout)
         fusion_dim = config.hidden_size + self.enc_dim
         self.fc_out = nn.Linear(fusion_dim, config.vocab_size)
@@ -80,7 +77,6 @@ class Decoder(nn.Module):
         return logits, hidden
 
     def forward(self, input_tokens, hidden, enc_outputs, src_mask):
-        # Thin wrapper so that calling `self.decoder(...)` works with nn.Module API.
         return self.forward_step(input_tokens, hidden, enc_outputs, src_mask)
 
 
@@ -98,7 +94,6 @@ class Seq2SeqModel(nn.Module):
         batch_size, tgt_len = tgt_input.size()
 
         enc_outputs, (h, c) = self.encoder(src, src_lens)
-        # combine bidirectional states
         h_cat = torch.cat([h[-2], h[-1]], dim=-1)
         c_cat = torch.cat([c[-2], c[-1]], dim=-1)
         h0 = self.hidden_proj(h_cat).unsqueeze(0)
@@ -135,8 +130,8 @@ class Seq2SeqModel(nn.Module):
         src_mask = (src != PAD_ID).float()
 
         batch_size = src.size(0)
-        outputs = torch.full((batch_size, 1), fill_value=1, dtype=torch.long, device=src.device)
-        input_tokens = torch.full((batch_size,), fill_value=1, dtype=torch.long, device=src.device)
+        outputs = torch.full((batch_size, 1), BOS_ID, dtype=torch.long, device=src.device)
+        input_tokens = torch.full((batch_size,), BOS_ID, dtype=torch.long, device=src.device)
 
         for _ in range(max_len):
             logits, hidden = self.decoder(input_tokens, hidden, enc_outputs, src_mask)
