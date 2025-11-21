@@ -1,4 +1,5 @@
 import argparse
+import json
 import math
 import os
 from typing import Tuple
@@ -185,6 +186,7 @@ def train(
     os.makedirs(save_dir, exist_ok=True)
     best_val = math.inf
     best_path = os.path.join(save_dir, f"{lang_pair}.{model_type}.pt")
+    history = []
 
     for epoch in range(epochs):
         train_loss = run_epoch(
@@ -211,6 +213,13 @@ def train(
             f"[{model_type}] {lang_pair} Epoch {epoch+1}/{epochs}: "
             f"train_loss={train_loss:.4f}, val_loss={val_loss:.4f}"
         )
+        history.append(
+            {
+                "epoch": epoch + 1,
+                "train_loss": train_loss,
+                "val_loss": val_loss,
+            }
+        )
         if val_loss < best_val:
             best_val = val_loss
             torch.save(
@@ -223,6 +232,11 @@ def train(
                 best_path,
             )
             print(f"  Saved best model to {best_path}")
+
+    history_path = os.path.join(save_dir, f"{lang_pair}.{model_type}.loss.json")
+    with open(history_path, "w", encoding="utf-8") as f:
+        json.dump(history, f, indent=2)
+    print(f"  Saved loss history to {history_path}")
 
 
 def parse_args():
