@@ -12,6 +12,7 @@ from torch.optim import Adam
 
 from mt.data import PAD_ID, make_dataloader
 from mt.models import Seq2SeqModel, Seq2SeqConfig, TransformerModel, TransformerConfig
+from mt.utils import ensure_multilingual_dataset
 
 
 def label_smoothed_nll_loss(logits, target, epsilon, ignore_index=PAD_ID):
@@ -161,9 +162,8 @@ def train(
     save_dir: str,
     device: str,
 ):
-    # For bilingual training lang_pair looks like "de-en".
-    # For multilingual training we expect a folder named exactly `lang_pair`
-    # (e.g. "multilingual") that contains {split}.src/.tgt.
+    if lang_pair == "multilingual":
+        ensure_multilingual_dataset(data_dir, out_name=lang_pair)
     pair_dir = os.path.join(data_dir, lang_pair)
     train_src = os.path.join(pair_dir, "train.src")
     train_tgt = os.path.join(pair_dir, "train.tgt")

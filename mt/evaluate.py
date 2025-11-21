@@ -9,6 +9,7 @@ from nltk.translate.meteor_score import meteor_score
 
 from mt.data import PAD_ID, make_dataloader
 from mt.models import Seq2SeqModel, Seq2SeqConfig, TransformerModel, TransformerConfig
+from mt.utils import ensure_multilingual_dataset
 
 
 def load_model(path: str, device: str):
@@ -42,6 +43,8 @@ def evaluate_model(
     out_path: str,
 ):
     model, spm_model, model_type = load_model(ckpt_path, device)
+    if lang_pair == "multilingual":
+        ensure_multilingual_dataset(data_dir, out_name=lang_pair)
     pair_dir = os.path.join(data_dir, lang_pair)
     src_path = os.path.join(pair_dir, f"{split}.src")
     tgt_path = os.path.join(pair_dir, f"{split}.tgt")
