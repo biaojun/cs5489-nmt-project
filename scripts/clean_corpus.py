@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Clean parallel corpora:
 - remove empty lines
@@ -5,15 +6,14 @@ Clean parallel corpora:
 - remove pairs with large length ratio
 - strip simple HTML/XML tags
 
-Input:  train/valid/test .{src,.tgt} (per language pair)
-Output: train/valid/test .clean.{src,.tgt}
+Input:  {lang-pair}/{split}.{src,tgt}
+Output: {lang-pair}/{split}.clean.{src,tgt}
 """
 
 import argparse
 import os
 import re
 from typing import Iterable, Tuple
-
 
 HTML_TAG_RE = re.compile(r"<[^>]+>")
 
@@ -30,11 +30,8 @@ def clean_pair(
     if not src or not tgt:
         return False, "", ""
 
-    # strip simple HTML/XML tags
-    src_stripped = HTML_TAG_RE.sub("", src)
-    tgt_stripped = HTML_TAG_RE.sub("", tgt)
-    src_stripped = src_stripped.strip()
-    tgt_stripped = tgt_stripped.strip()
+    src_stripped = HTML_TAG_RE.sub("", src).strip()
+    tgt_stripped = HTML_TAG_RE.sub("", tgt).strip()
     if not src_stripped or not tgt_stripped:
         return False, "", ""
 
@@ -91,7 +88,7 @@ def main():
         "--data-dir",
         type=str,
         default="/root/autodl-tmp/processed_wmt14",
-        help="directory with {lang-pair}/train.src,train.tgt,... files",
+        help="directory with {lang-pair}/train.{src,tgt}, etc.",
     )
     parser.add_argument("--min-len", type=int, default=3)
     parser.add_argument("--max-len", type=int, default=256)

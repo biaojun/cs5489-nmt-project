@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Apply a trained SentencePiece model to cleaned corpora and generate
 model-ready .src/.tgt files for each language pair.
@@ -53,10 +54,10 @@ def main():
                 out_tgt, "w", encoding="utf-8"
             ) as fot:
                 for src_line, tgt_line in zip(fs, ft):
-                    src_ids = sp.encode(src_line.strip(), out_type=str)
-                    tgt_ids = sp.encode(tgt_line.strip(), out_type=str)
-                    fos.write(" ".join(src_ids) + "\n")
-                    fot.write(" ".join(tgt_ids) + "\n")
+                    src_tokens = sp.encode(src_line.strip(), out_type=str)
+                    tgt_tokens = sp.encode(tgt_line.strip(), out_type=str)
+                    fos.write(" ".join(src_tokens) + "\n")
+                    fot.write(" ".join(tgt_tokens) + "\n")
 
 
 if __name__ == "__main__":
