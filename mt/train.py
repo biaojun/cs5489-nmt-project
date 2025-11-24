@@ -161,6 +161,7 @@ def train(
     epochs: int,
     save_dir: str,
     device: str,
+    use_multi_gpu: bool = True,
 ):
     if lang_pair == "multilingual":
         ensure_multilingual_dataset(data_dir, out_name=lang_pair)
@@ -181,6 +182,9 @@ def train(
     )
 
     model = build_model(model_type, vocab_size=vocab_size).to(device)
+    if use_multi_gpu and device.startswith("cuda") and torch.cuda.device_count() > 1:
+        print(f"Using DataParallel on {torch.cuda.device_count()} GPUs")
+        model = nn.DataParallel(model)
     optimizer, scheduler = build_optim(model, model_type=model_type)
 
     os.makedirs(save_dir, exist_ok=True)
@@ -222,10 +226,11 @@ def train(
         )
         if val_loss < best_val:
             best_val = val_loss
+            model_to_save = model.module if hasattr(model, "module") else model
             torch.save(
                 {
-                    "model_state": model.state_dict(),
-                    "config": model.config.__dict__,
+                    "model_state": model_to_save.state_dict(),
+                    "config": model_to_save.config.__dict__,
                     "model_type": model_type,
                     "spm_model": spm_model,
                 },
@@ -266,6 +271,11 @@ def parse_args():
         default="checkpoints",
     )
     parser.add_argument("--device", type=str, default="cuda")
+    parser.add_argument(
+        "--no-multi-gpu",
+        action="store_true",
+        help="disable DataParallel even if multiple GPUs are available",
+    )
     return parser.parse_args()
 
 
@@ -280,6 +290,7 @@ def main():
         epochs=args.epochs,
         save_dir=args.save_dir,
         device=args.device,
+        use_multi_gpu=not args.no_multi_gpu,
     )
 
 
