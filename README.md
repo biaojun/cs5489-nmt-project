@@ -14,16 +14,21 @@ Directory overview
 ------------------
 
 ```
-analysis/                    Stats, result aggregation, badcase sampling
+analysis/                    Stats, result aggregation, loss plots, badcase sampling
+   collect_results.py         Aggregate BLEU/METEOR from results/*.json
+   dataset_stats.py           Compute sentence counts & avg lengths
+   error_analysis.py          Sample SRC/REF/HYP triplets for manual inspection
+   plot_loss_curves.py        Parse logs/*.log and draw training loss curves
 data/wmt___wmt14/            Local Arrow shards (not tracked)
+logs/                        Training logs (e.g., seq2seq_v2.log, transformer_v3.log)
 mt/                          Training & evaluation code
-  data.py                    SentencePiece-based dataset/dataloader
-  train.py                   Unified trainer for Seq2Seq/Transformer
-  evaluate.py                Greedy decoding + BLEU/METEOR
-  models/seq2seq.py          BiLSTM encoder + Luong attention decoder
-  models/transformer.py      Transformer-base implementation
+   data.py                    SentencePiece-based dataset/dataloader
+   train.py                   Unified trainer for Seq2Seq/Transformer
+   evaluate.py                Greedy decoding + BLEU/METEOR
+   models/seq2seq.py          BiLSTM encoder + Luong attention decoder
+   models/transformer.py      Transformer-base implementation
 processed_wmt14/             Generated plain/BPE/multilingual data
-report/                      Report template
+report/                      Report template and final report
 scripts/                     Data preparation & automation scripts
 ```
 
@@ -97,6 +102,7 @@ Evaluation & analysis
   ```
 - `analysis/collect_results.py` aggregates metrics from `results/*.json` into the required BLEU table.  
 - `analysis/error_analysis.py` samples badcases by combining reference/test outputs from Seq2Seq and Transformer models.
+- `analysis/plot_loss_curves.py` parses `logs/seq2seq_v2.log` and `logs/transformer_v3.log` to produce separate training loss plots `analysis/seq2seq_v2_loss.png` and `analysis/transformer_v3_loss.png`.
 
 Tips & notes
 ------------
